@@ -3,7 +3,7 @@
 ### by USMAN HAIDER
 ##### npm install or yarn install
 ##### npm start or npm run dev to start the server
-####Dependencies are
+#### Dependencies are
 "dependencies": {
     "bcryptjs": "^2.4.3",
     "chalk": "^4.1.2",
