@@ -1,7 +1,9 @@
 # task-manager
 ## Node Js Project
 ### by USMAN HAIDER
-Dependencies are
+##### npm install or yarn install
+##### npm start or npm run dev to start the server
+####Dependencies are
 "dependencies": {
     "bcryptjs": "^2.4.3",
     "chalk": "^4.1.2",
