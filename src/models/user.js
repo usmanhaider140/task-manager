@@ -2,58 +2,67 @@ const { Schema, model } = require("mongoose");
 const validator = require("validator");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const Task = require("./task");
 
-const userSchema = new Schema({
-  name: {
-    type: String,
-    required: true,
-    trim: true,
-    lowercase: true,
-  },
-  email: {
-    type: String,
-    trim: true,
-    unique: true,
-    lowercase: true,
-    required: [true, "Email is required"],
-    validate(value) {
-      if (!validator.isEmail(value)) throw new Error("Email is invalid");
+const userSchema = new Schema(
+  {
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+      lowercase: true,
     },
-  },
-  password: {
-    type: String,
-    trim: true,
-    required: true,
-    minLength: [7, "Password at least 8 characters"],
-    validate(value) {
-      isContainPassword = /password/i.test(value);
-      if (isContainPassword)
-        throw new Error("Password should not contain password word");
-      if (!validator.isLength(value, { min: 7 }))
-        throw new Error(
-          "Password length is less than or equal to six which is incorrect"
-        );
-    },
-  },
-
-  age: {
-    type: Number,
-    default: 0,
-    validate(value) {
-      if (value < 0) {
-        throw new Error("Age must be a positive number");
-      }
-    },
-  },
-  tokens: [
-    {
-      token: {
-        type: String,
-        required: true,
+    email: {
+      type: String,
+      trim: true,
+      unique: true,
+      lowercase: true,
+      required: [true, "Email is required"],
+      validate(value) {
+        if (!validator.isEmail(value)) throw new Error("Email is invalid");
       },
     },
-  ],
-});
+    password: {
+      type: String,
+      trim: true,
+      required: true,
+      minLength: [7, "Password at least 8 characters"],
+      validate(value) {
+        isContainPassword = /password/i.test(value);
+        if (isContainPassword)
+          throw new Error("Password should not contain password word");
+        if (!validator.isLength(value, { min: 7 }))
+          throw new Error(
+            "Password length is less than or equal to six which is incorrect"
+          );
+      },
+    },
+
+    age: {
+      type: Number,
+      default: 0,
+      validate(value) {
+        if (value < 0) {
+          throw new Error("Age must be a positive number");
+        }
+      },
+    },
+    tokens: [
+      {
+        token: {
+          type: String,
+          required: true,
+        },
+      },
+    ],
+    avatar: {
+      type: Buffer,
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
 
 // Tip Statics Methods are accessible on modal and sometime called model method
 userSchema.statics.findByCredentials = async (email, password) => {
@@ -71,13 +80,14 @@ userSchema.methods.toJSON = function () {
   const userObject = user.toObject();
   delete userObject.password;
   delete userObject.tokens;
+  delete userObject.avatar;
   return userObject;
 };
 
 // Tip Statics Methods are accessible on instances and called instance method
 userSchema.methods.generateAuthToken = async function () {
   const user = this;
-  const token = jwt.sign({ _id: user._id.toString() }, "shikkimikki");
+  const token = jwt.sign({ _id: user._id.toString() }, process.env.JWT_KEY);
 
   user.tokens = user.tokens.concat({
     token,
@@ -95,6 +105,18 @@ userSchema.pre("save", async function (next) {
   if (user.isModified("password")) {
     user.password = await bcrypt.hash(user.password, 8);
   }
+  next();
+});
+
+userSchema.virtual("tasks", {
+  ref: "Task",
+  localField: "_id",
+  foreignField: "owner",
+});
+
+userSchema.pre("remove", async function (next) {
+  const user = this;
+  await Task.deleteMany({ owner: user._id });
   next();
 });
 
